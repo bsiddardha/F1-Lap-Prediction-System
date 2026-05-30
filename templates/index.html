@@ -4,559 +4,1048 @@
 <meta charset="UTF-8">
 <title>F1 Lap Time Predictor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --red: #e10600;
-    --red-dim: #8a0400;
-    --bg: #080808;
-    --surface: #101010;
-    --surface2: #161616;
-    --border: #242424;
-    --text: #f0f0f0;
-    --muted: #666;
-    --accent-glow: rgba(225,6,0,0.18);
-  }
+:root {
+  --red: #e8001d;
+  --orange: #ff6b35;
+  --yellow: #ffd23f;
+  --blue: #0057ff;
+  --cyan: #00d4ff;
+  --purple: #7c3aed;
+  --green: #00c896;
+  --bg: #fafaf8;
+  --bg2: #f2f1ed;
+  --bg3: #e8e6e0;
+  --text: #0e0e0e;
+  --text2: #555;
+  --text3: #999;
+  --card: #ffffff;
+  --nav-bg: rgba(250,250,248,0.92);
+  --border: rgba(0,0,0,0.08);
+  --shadow: 0 2px 20px rgba(0,0,0,0.08);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+}
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[data-theme="dark"] {
+  --bg: #0a0a0f;
+  --bg2: #111118;
+  --bg3: #1a1a24;
+  --text: #f0f0f8;
+  --text2: #a0a0b8;
+  --text3: #60607a;
+  --card: #14141e;
+  --nav-bg: rgba(10,10,15,0.92);
+  --border: rgba(255,255,255,0.08);
+  --shadow: 0 2px 20px rgba(0,0,0,0.4);
+}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Barlow Condensed', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-  /* Animated track grid background */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(225,6,0,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(225,6,0,0.04) 1px, transparent 1px);
-    background-size: 60px 60px;
-    animation: gridShift 20s linear infinite;
-    pointer-events: none;
-    z-index: 0;
-  }
+html{scroll-behavior:smooth}
 
-  @keyframes gridShift {
-    from { background-position: 0 0; }
-    to { background-position: 60px 60px; }
-  }
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Outfit',sans-serif;
+  font-size:16px;
+  line-height:1.6;
+  transition:background var(--transition),color var(--transition);
+  overflow-x:hidden;
+}
 
-  /* Speed line sweep */
-  body::after {
-    content: '';
-    position: fixed;
-    top: 0; left: -100%;
-    width: 60%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--red), transparent);
-    animation: sweep 4s ease-in-out infinite;
-    z-index: 1;
-    opacity: 0.6;
-  }
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  background:var(--nav-bg);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;
+  height:64px;
+  display:flex;align-items:center;justify-content:space-between;
+  transition:background var(--transition);
+}
 
-  @keyframes sweep {
-    0% { left: -60%; top: 30%; }
-    50% { left: 150%; top: 30%; }
-    51% { left: -60%; top: 70%; }
-    100% { left: 150%; top: 70%; }
-  }
+.nav-logo{
+  display:flex;align-items:center;gap:10px;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:18px;
+  color:var(--text);text-decoration:none;
+  letter-spacing:-0.5px;
+}
 
-  .wrapper {
-    position: relative;
-    z-index: 2;
-    max-width: 780px;
-    margin: 0 auto;
-    padding: 40px 20px 60px;
-  }
+.nav-logo-badge{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,var(--red),var(--orange));
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Space Mono',monospace;font-size:11px;font-weight:700;
+  color:#fff;letter-spacing:0;
+}
 
-  /* Header */
-  .header {
-    display: flex;
-    align-items: flex-start;
-    gap: 20px;
-    margin-bottom: 48px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 28px;
-    animation: fadeDown 0.6s ease both;
-  }
+.nav-links{
+  display:flex;align-items:center;gap:4px;
+  list-style:none;
+}
 
-  @keyframes fadeDown {
-    from { opacity: 0; transform: translateY(-16px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+.nav-links a{
+  display:block;padding:8px 16px;
+  font-size:14px;font-weight:500;
+  color:var(--text2);text-decoration:none;
+  border-radius:8px;
+  transition:all 0.2s;
+}
 
-  .logo-mark {
-    width: 54px;
-    height: 54px;
-    background: var(--red);
-    clip-path: polygon(0 0, 80% 0, 100% 50%, 80% 100%, 0 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px;
-    letter-spacing: 1px;
-    color: white;
-  }
+.nav-links a:hover,.nav-links a.active{
+  color:var(--text);
+  background:var(--bg3);
+}
 
-  .header-text {}
+.nav-links a.active{color:var(--red);}
 
-  .header-eyebrow {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 3px;
-    color: var(--red);
-    text-transform: uppercase;
-    margin-bottom: 4px;
-  }
+.nav-right{display:flex;align-items:center;gap:8px;}
 
-  h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(36px, 6vw, 58px);
-    line-height: 1;
-    letter-spacing: 2px;
-    color: var(--text);
-  }
+.theme-btn{
+  width:40px;height:40px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:10px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;color:var(--text2);
+  transition:all 0.2s;
+}
+.theme-btn:hover{background:var(--bg2);color:var(--text);}
 
-  h1 span {
-    color: var(--red);
-  }
+.nav-cta{
+  padding:9px 20px;
+  background:linear-gradient(135deg,var(--red),var(--orange));
+  color:#fff!important;border-radius:10px;
+  font-weight:600!important;font-size:14px!important;
+  transition:all 0.2s!important;box-shadow:0 4px 15px rgba(232,0,29,0.3);
+}
+.nav-cta:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(232,0,29,0.4)!important;background:var(--bg)!important;color:var(--red)!important;}
 
-  .header-sub {
-    font-size: 14px;
-    color: var(--muted);
-    font-weight: 300;
-    margin-top: 6px;
-    letter-spacing: 0.5px;
-  }
+/* ── HERO ── */
+#home{
+  min-height:100vh;
+  padding:100px 24px 60px;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+  overflow:hidden;
+}
 
-  /* Form layout */
-  .form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    animation: fadeUp 0.7s 0.15s ease both;
-  }
+.hero-bg{
+  position:absolute;inset:0;pointer-events:none;overflow:hidden;
+}
 
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+.hero-orb{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(80px);
+  opacity:0.15;
+  animation:orbFloat 8s ease-in-out infinite;
+}
 
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
+.orb1{width:500px;height:500px;background:var(--red);top:-100px;right:-100px;animation-delay:0s;}
+.orb2{width:400px;height:400px;background:var(--blue);bottom:-50px;left:-80px;animation-delay:3s;}
+.orb3{width:300px;height:300px;background:var(--orange);top:40%;left:40%;animation-delay:5s;}
 
-  .field.full {
-    grid-column: 1 / -1;
-  }
+@keyframes orbFloat{
+  0%,100%{transform:translate(0,0) scale(1);}
+  50%{transform:translate(20px,-20px) scale(1.05);}
+}
 
-  label {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
+.hero-content{position:relative;z-index:1;max-width:900px;width:100%;text-align:center;}
 
-  input[type="number"],
-  select {
-    width: 100%;
-    padding: 12px 14px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 14px;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-  }
+.hero-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 16px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:100px;
+  font-family:'Space Mono',monospace;font-size:11px;
+  color:var(--text2);letter-spacing:1px;
+  margin-bottom:28px;
+  box-shadow:var(--shadow);
+  animation:fadeUp 0.6s 0.1s both;
+}
 
-  input[type="number"]:focus,
-  select:focus {
-    border-color: var(--red);
-    background: var(--surface2);
-    box-shadow: 0 0 0 3px var(--accent-glow), inset 0 0 12px rgba(225,6,0,0.05);
-  }
+.pill-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 8px var(--green);
+  animation:pulse 2s infinite;
+}
 
-  input[type="number"]::placeholder {
-    color: #333;
-  }
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
 
-  select option {
-    background: #1a1a1a;
-    color: var(--text);
-  }
+h1.hero-title{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(48px,8vw,96px);
+  font-weight:800;line-height:0.95;
+  letter-spacing:-3px;
+  margin-bottom:24px;
+  animation:fadeUp 0.6s 0.2s both;
+}
 
-  /* Custom select arrow */
-  .select-wrap {
-    position: relative;
-  }
+.hero-title .line1{display:block;color:var(--text);}
+.hero-title .line2{
+  display:block;
+  background:linear-gradient(90deg,var(--red),var(--orange),var(--yellow));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
 
-  .select-wrap::after {
-    content: '▾';
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--red);
-    pointer-events: none;
-    font-size: 13px;
-  }
+.hero-desc{
+  font-size:18px;color:var(--text2);font-weight:400;
+  max-width:520px;margin:0 auto 40px;
+  animation:fadeUp 0.6s 0.3s both;
+}
 
-  /* Divider */
-  .section-label {
-    grid-column: 1 / -1;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px;
-  }
+.hero-btns{
+  display:flex;gap:12px;justify-content:center;flex-wrap:wrap;
+  animation:fadeUp 0.6s 0.4s both;
+}
 
-  .section-label span {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--red);
-    white-space: nowrap;
-  }
+.btn-primary{
+  padding:14px 32px;
+  background:linear-gradient(135deg,var(--red),var(--orange));
+  color:#fff;border:none;border-radius:12px;
+  font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;
+  cursor:pointer;text-decoration:none;
+  transition:all 0.25s;
+  box-shadow:0 6px 20px rgba(232,0,29,0.35);
+}
 
-  .section-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(232,0,29,0.45);}
 
-  /* Submit button */
-  .btn-wrap {
-    grid-column: 1 / -1;
-    margin-top: 8px;
-  }
+.btn-outline{
+  padding:14px 32px;
+  background:transparent;
+  color:var(--text);
+  border:1.5px solid var(--border);
+  border-radius:12px;
+  font-family:'Outfit',sans-serif;font-size:15px;font-weight:500;
+  cursor:pointer;text-decoration:none;
+  transition:all 0.25s;
+}
 
-  button[type="submit"] {
-    width: 100%;
-    padding: 16px 24px;
-    background: var(--red);
-    border: none;
-    color: white;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px;
-    letter-spacing: 3px;
-    cursor: pointer;
-    border-radius: 4px;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.1s, box-shadow 0.3s;
-    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
-  }
+.btn-outline:hover{background:var(--bg3);border-color:var(--text3);}
 
-  button[type="submit"]::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
-    transform: translateX(-100%);
-    transition: transform 0.5s ease;
-  }
+.hero-stats{
+  display:flex;gap:40px;justify-content:center;flex-wrap:wrap;
+  margin-top:60px;
+  animation:fadeUp 0.6s 0.5s both;
+}
 
-  button[type="submit"]:hover {
-    box-shadow: 0 0 30px rgba(225,6,0,0.5), 0 4px 20px rgba(225,6,0,0.3);
-    transform: translateY(-1px);
-  }
+.stat-item{text-align:center;}
+.stat-num{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--text);line-height:1;}
+.stat-label{font-size:13px;color:var(--text3);margin-top:4px;}
 
-  button[type="submit"]:hover::before {
-    transform: translateX(100%);
-  }
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(24px);}
+  to{opacity:1;transform:translateY(0);}
+}
 
-  button[type="submit"]:active {
-    transform: translateY(0);
-  }
+/* ── SECTIONS COMMON ── */
+section{padding:100px 24px;}
 
-  /* Result panel */
-  .result-panel {
-    grid-column: 1 / -1;
-    margin-top: 4px;
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--red);
-    border-radius: 4px;
-    background: var(--surface);
-    padding: 20px 22px;
-    animation: resultReveal 0.4s ease both;
-    position: relative;
-    overflow: hidden;
-  }
+.section-header{
+  text-align:center;margin-bottom:60px;
+}
 
-  @keyframes resultReveal {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+.section-tag{
+  display:inline-block;
+  padding:4px 14px;
+  background:var(--bg3);border-radius:100px;
+  font-family:'Space Mono',monospace;font-size:11px;
+  color:var(--text3);letter-spacing:1px;
+  margin-bottom:16px;
+  text-transform:uppercase;
+}
 
-  .result-panel::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(225,6,0,0.06), transparent 60%);
-    pointer-events: none;
-  }
+h2.section-title{
+  font-family:'Syne',sans-serif;font-size:clamp(32px,5vw,52px);
+  font-weight:800;letter-spacing:-1.5px;color:var(--text);
+  line-height:1.05;
+}
 
-  .result-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 8px;
-  }
+.section-sub{font-size:17px;color:var(--text2);max-width:500px;margin:12px auto 0;}
 
-  .result-value {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 48px;
-    color: var(--red);
-    line-height: 1;
-    letter-spacing: 2px;
-  }
+/* ── PREDICTOR ── */
+#predictor{background:var(--bg2);}
 
-  .result-value.error {
-    font-family: 'DM Mono', monospace;
-    font-size: 14px;
-    color: #ff6b6b;
-  }
+.predictor-wrap{
+  max-width:840px;margin:0 auto;
+}
 
-  /* Ticker bar at bottom */
-  .ticker {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--red);
-    padding: 6px 0;
-    overflow: hidden;
-    z-index: 100;
-  }
+.predictor-card{
+  background:var(--card);
+  border-radius:24px;
+  border:1px solid var(--border);
+  overflow:hidden;
+  box-shadow:0 8px 40px rgba(0,0,0,0.08);
+}
 
-  .ticker-inner {
-    display: flex;
-    gap: 60px;
-    animation: tickerScroll 30s linear infinite;
-    white-space: nowrap;
-  }
+.predictor-header{
+  padding:28px 32px;
+  background:linear-gradient(135deg,var(--red) 0%,var(--orange) 60%,var(--yellow) 100%);
+  display:flex;align-items:center;justify-content:space-between;
+}
 
-  .ticker-inner span {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.85);
-  }
+.predictor-header-text h3{
+  font-family:'Syne',sans-serif;font-size:24px;font-weight:800;
+  color:#fff;letter-spacing:-0.5px;
+}
+.predictor-header-text p{font-size:13px;color:rgba(255,255,255,0.75);margin-top:2px;}
 
-  @keyframes tickerScroll {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
-  }
+.predictor-icon{
+  width:52px;height:52px;
+  background:rgba(255,255,255,0.2);
+  border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;
+}
 
-  /* Number input: hide arrows */
-  input[type=number]::-webkit-inner-spin-button,
-  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
-  input[type=number] { -moz-appearance: textfield; }
+.form-body{padding:32px;}
 
-  @media (max-width: 520px) {
-    .form-grid { grid-template-columns: 1fr; }
-    .field.full { grid-column: 1; }
-    .btn-wrap { grid-column: 1; }
-    .result-panel { grid-column: 1; }
-    .header { flex-direction: column; gap: 12px; }
-  }
+.form-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;
+}
+
+.field{display:flex;flex-direction:column;gap:6px;}
+.field.full{grid-column:1/-1;}
+
+.field-label{
+  font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--text3);font-weight:400;
+}
+
+.field-label span{
+  display:inline-block;
+  width:6px;height:6px;border-radius:50%;
+  background:var(--red);margin-left:2px;vertical-align:2px;
+}
+
+input[type="number"],select{
+  width:100%;padding:12px 16px;
+  background:var(--bg2);
+  border:1.5px solid var(--border);
+  border-radius:10px;
+  color:var(--text);
+  font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;
+  outline:none;
+  appearance:none;-webkit-appearance:none;
+  transition:border-color 0.2s,box-shadow 0.2s,background 0.2s;
+}
+
+input[type="number"]:focus,select:focus{
+  border-color:var(--red);
+  background:var(--card);
+  box-shadow:0 0 0 4px rgba(232,0,29,0.1);
+}
+
+input::placeholder{color:var(--text3);}
+
+select option{background:var(--card);color:var(--text);}
+
+.select-wrap{position:relative;}
+.select-wrap::after{
+  content:'▾';
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  color:var(--text3);pointer-events:none;font-size:12px;
+}
+
+.section-divider{
+  grid-column:1/-1;
+  display:flex;align-items:center;gap:12px;
+  margin-top:4px;
+  padding:4px 0;
+}
+
+.section-divider-label{
+  font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:2px;text-transform:uppercase;
+  color:var(--text3);white-space:nowrap;
+}
+
+.section-divider::before,.section-divider::after{
+  content:'';flex:1;height:1px;background:var(--border);
+}
+
+.submit-wrap{grid-column:1/-1;margin-top:8px;}
+
+.submit-btn{
+  width:100%;padding:16px;
+  background:linear-gradient(135deg,var(--red),var(--orange));
+  color:#fff;border:none;border-radius:12px;
+  font-family:'Syne',sans-serif;font-size:18px;font-weight:700;
+  letter-spacing:1px;cursor:pointer;
+  transition:all 0.25s;
+  box-shadow:0 6px 20px rgba(232,0,29,0.3);
+  position:relative;overflow:hidden;
+}
+
+.submit-btn::before{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+  transform:translateX(-100%);
+  transition:transform 0.5s;
+}
+.submit-btn:hover{transform:translateY(-1px);box-shadow:0 10px 30px rgba(232,0,29,0.4);}
+.submit-btn:hover::before{transform:translateX(100%);}
+.submit-btn:active{transform:translateY(0);}
+
+.result-panel{
+  grid-column:1/-1;
+  padding:20px 24px;
+  background:linear-gradient(135deg,rgba(232,0,29,0.06),rgba(255,107,53,0.04));
+  border:1.5px solid rgba(232,0,29,0.15);
+  border-radius:14px;
+  animation:fadeUp 0.4s both;
+}
+
+.result-tag{
+  font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:2px;text-transform:uppercase;
+  color:var(--text3);margin-bottom:6px;
+}
+
+.result-time{
+  font-family:'Syne',sans-serif;font-size:52px;font-weight:800;
+  color:var(--red);line-height:1;letter-spacing:-1px;
+}
+
+/* ── HOW IT WORKS ── */
+#how-it-works{background:var(--bg);}
+
+.steps-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:20px;max-width:960px;margin:0 auto;
+}
+
+.step-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:28px 24px;
+  position:relative;
+  transition:all 0.25s;
+}
+
+.step-card:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,0.1);}
+
+.step-num{
+  font-family:'Syne',sans-serif;font-size:56px;font-weight:800;
+  line-height:1;margin-bottom:16px;
+  background:linear-gradient(135deg,var(--red),var(--orange));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  opacity:0.3;
+}
+
+.step-icon{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin-bottom:14px;
+}
+
+.step-card:nth-child(1) .step-icon{background:rgba(232,0,29,0.1);}
+.step-card:nth-child(2) .step-icon{background:rgba(0,87,255,0.1);}
+.step-card:nth-child(3) .step-icon{background:rgba(0,200,150,0.1);}
+.step-card:nth-child(4) .step-icon{background:rgba(255,107,53,0.1);}
+
+.step-title{
+  font-family:'Syne',sans-serif;font-size:18px;font-weight:700;
+  color:var(--text);margin-bottom:8px;
+}
+
+.step-desc{font-size:14px;color:var(--text2);line-height:1.6;}
+
+/* ── ABOUT ── */
+#about{background:var(--bg2);}
+
+.about-inner{
+  max-width:960px;margin:0 auto;
+  display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;
+}
+
+.about-visual{
+  position:relative;
+}
+
+.about-chart{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:20px;padding:24px;
+  box-shadow:var(--shadow);
+}
+
+.chart-title{
+  font-family:'Space Mono',monospace;font-size:11px;
+  letter-spacing:1px;color:var(--text3);margin-bottom:20px;
+  text-transform:uppercase;
+}
+
+.bar-row{
+  display:flex;align-items:center;gap:12px;margin-bottom:14px;
+}
+
+.bar-label{
+  font-size:12px;font-weight:500;color:var(--text2);
+  width:70px;text-align:right;flex-shrink:0;
+}
+
+.bar-track{
+  flex:1;height:28px;background:var(--bg2);border-radius:6px;overflow:hidden;
+}
+
+.bar-fill{
+  height:100%;border-radius:6px;
+  display:flex;align-items:center;padding-left:10px;
+  font-family:'Space Mono',monospace;font-size:11px;
+  color:#fff;font-weight:700;
+  transition:width 1s cubic-bezier(0.4,0,0.2,1);
+}
+
+.bar-vlt{background:linear-gradient(90deg,#0057ff,#00d4ff);width:88%;}
+.bar-ham{background:linear-gradient(90deg,#00c896,#00d4ff);width:81%;}
+.bar-lec{background:linear-gradient(90deg,#e8001d,#ff6b35);width:78%;}
+.bar-nor{background:linear-gradient(90deg,#ff6b35,#ffd23f);width:76%;}
+.bar-alo{background:linear-gradient(90deg,#7c3aed,#e8001d);width:72%;}
+
+.about-text{}
+.about-tag{
+  display:inline-block;padding:4px 14px;
+  background:var(--bg3);border-radius:100px;
+  font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:1.5px;color:var(--text3);
+  margin-bottom:16px;text-transform:uppercase;
+}
+
+.about-title{
+  font-family:'Syne',sans-serif;font-size:36px;font-weight:800;
+  letter-spacing:-1px;color:var(--text);line-height:1.1;
+  margin-bottom:16px;
+}
+
+.about-desc{font-size:15px;color:var(--text2);line-height:1.7;margin-bottom:20px;}
+
+.tech-chips{display:flex;flex-wrap:wrap;gap:8px;}
+
+.chip{
+  padding:6px 14px;
+  border-radius:8px;
+  font-family:'Space Mono',monospace;font-size:11px;
+  font-weight:400;letter-spacing:0.5px;
+  border:1px solid var(--border);
+  color:var(--text2);
+  background:var(--card);
+}
+
+.chip.red{background:rgba(232,0,29,0.08);color:var(--red);border-color:rgba(232,0,29,0.2);}
+.chip.blue{background:rgba(0,87,255,0.08);color:var(--blue);border-color:rgba(0,87,255,0.2);}
+.chip.green{background:rgba(0,200,150,0.08);color:var(--green);border-color:rgba(0,200,150,0.2);}
+.chip.orange{background:rgba(255,107,53,0.08);color:var(--orange);border-color:rgba(255,107,53,0.2);}
+.chip.purple{background:rgba(124,58,237,0.08);color:var(--purple);border-color:rgba(124,58,237,0.2);}
+
+/* ── CONTACT ── */
+#contact{background:var(--bg);}
+
+.contact-inner{
+  max-width:640px;margin:0 auto;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:24px;padding:48px;
+  box-shadow:var(--shadow);
+  text-align:center;
+}
+
+.contact-inner h3{
+  font-family:'Syne',sans-serif;font-size:32px;font-weight:800;
+  letter-spacing:-1px;color:var(--text);margin-bottom:12px;
+}
+
+.contact-inner p{font-size:16px;color:var(--text2);margin-bottom:32px;}
+
+.contact-cards{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:32px;
+}
+
+.contact-card{
+  padding:20px 16px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:14px;text-decoration:none;
+  color:var(--text);
+  transition:all 0.25s;
+}
+
+.contact-card:hover{background:var(--bg3);transform:translateY(-2px);}
+.contact-card-icon{font-size:24px;margin-bottom:8px;}
+.contact-card-label{font-size:13px;font-weight:600;color:var(--text);}
+.contact-card-val{font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);margin-top:2px;}
+
+/* ── FOOTER ── */
+footer{
+  background:var(--bg2);border-top:1px solid var(--border);
+  padding:32px 24px;
+  text-align:center;
+}
+
+.footer-inner{
+  max-width:960px;margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:16px;
+}
+
+.footer-logo{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:16px;
+  color:var(--text);
+}
+
+.footer-text{font-size:13px;color:var(--text3);}
+
+.footer-links{display:flex;gap:20px;}
+.footer-links a{font-size:13px;color:var(--text3);text-decoration:none;}
+.footer-links a:hover{color:var(--text);}
+
+/* ── TICKER ── */
+.ticker{
+  background:linear-gradient(90deg,var(--red),var(--orange),var(--yellow),var(--orange),var(--red));
+  background-size:200% 100%;
+  padding:8px 0;overflow:hidden;
+  animation:gradMove 4s linear infinite;
+}
+
+@keyframes gradMove{0%{background-position:0%;}100%{background-position:200%;}}
+
+.ticker-inner{
+  display:flex;gap:48px;
+  animation:tickerScroll 25s linear infinite;
+  white-space:nowrap;
+}
+
+.ticker-inner span{
+  font-family:'Space Mono',monospace;font-size:11px;
+  letter-spacing:2px;text-transform:uppercase;
+  color:rgba(255,255,255,0.9);
+}
+
+@keyframes tickerScroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+/* ── MOBILE ── */
+@media(max-width:768px){
+  .nav-links{display:none;}
+  .form-grid{grid-template-columns:1fr;}
+  .field.full{grid-column:1;}
+  .submit-wrap{grid-column:1;}
+  .result-panel{grid-column:1;}
+  .about-inner{grid-template-columns:1fr;gap:32px;}
+  .contact-cards{grid-template-columns:1fr;}
+  .footer-inner{justify-content:center;text-align:center;}
+  .footer-links{justify-content:center;}
+}
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--text3);}
+
+/* number input no arrows */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;}
+input[type=number]{-moz-appearance:textfield;}
 </style>
 </head>
-
 <body>
 
-<div class="wrapper">
+<!-- NAV -->
+<nav>
+  <a href="#home" class="nav-logo">
+    <div class="nav-logo-badge">F1</div>
+    LapPredict
+  </a>
+  <ul class="nav-links">
+    <li><a href="#home" class="active" onclick="setActive(this)">Home</a></li>
+    <li><a href="#predictor" onclick="setActive(this)">Predictor</a></li>
+    <li><a href="#how-it-works" onclick="setActive(this)">How It Works</a></li>
+    <li><a href="#about" onclick="setActive(this)">About</a></li>
+    <li><a href="#contact" onclick="setActive(this)">Contact</a></li>
+  </ul>
+  <div class="nav-right">
+    <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">🌙</button>
+    <a href="#predictor" class="nav-links" style="list-style:none"><a href="#predictor" class="nav-cta">Try Predictor</a></a>
+  </div>
+</nav>
 
-  <header class="header">
-    <div class="logo-mark">F1</div>
-    <div class="header-text">
-      <div class="header-eyebrow">Machine Learning · Race Analytics</div>
-      <h1>LAP TIME <span>PREDICTOR</span></h1>
-      <p class="header-sub">Random Forest model trained on historical race telemetry data</p>
+<!-- HERO -->
+<section id="home">
+  <div class="hero-bg">
+    <div class="hero-orb orb1"></div>
+    <div class="hero-orb orb2"></div>
+    <div class="hero-orb orb3"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-pill">
+      <div class="pill-dot"></div>
+      RANDOM FOREST MODEL · LIVE ANALYTICS
     </div>
-  </header>
-
-  <form action="/predict" method="post">
-    <div class="form-grid">
-
-      <!-- Race context -->
-      <div class="section-label">
-        <span>Race Context</span>
-      </div>
-
-      <div class="field">
-        <label for="year">Season Year</label>
-        <input type="number" id="year" name="year" placeholder="2024" min="2018" max="2025" required>
-      </div>
-
-      <div class="field">
-        <label for="position">Track Position</label>
-        <input type="number" id="position" name="position" placeholder="1 – 20" min="1" max="20" required>
-      </div>
-
-      <div class="field">
-        <label for="lap_number">Lap Number</label>
-        <input type="number" id="lap_number" name="lap_number" placeholder="e.g. 28" min="1" required>
-      </div>
-
-      <div class="field">
-        <label for="stint">Stint</label>
-        <input type="number" id="stint" name="stint" placeholder="e.g. 2" min="1" required>
-      </div>
-
-      <!-- Tyre -->
-      <div class="section-label">
-        <span>Tyre Data</span>
-      </div>
-
-      <div class="field">
-        <label for="tyre_life">Tyre Life (laps)</label>
-        <input type="number" id="tyre_life" name="tyre_life" placeholder="e.g. 12" min="0" required>
-      </div>
-
-      <div class="field">
-        <label for="fresh_tyre">Fresh Tyre</label>
-        <div class="select-wrap">
-          <select id="fresh_tyre" name="fresh_tyre" required>
-            <option value="">Select</option>
-            <option value="1">Yes — Fresh</option>
-            <option value="0">No — Used</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="field full">
-        <label for="compound">Compound</label>
-        <div class="select-wrap">
-          <select id="compound" name="compound" required>
-            <option value="">Select compound</option>
-            <option value="SOFT">SOFT — C4 / C5</option>
-            <option value="MEDIUM">MEDIUM — C3</option>
-            <option value="HARD">HARD — C1 / C2</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Driver & Team -->
-      <div class="section-label">
-        <span>Driver &amp; Constructor</span>
-      </div>
-
-      <div class="field full">
-        <label for="team">Constructor</label>
-        <div class="select-wrap">
-          <select id="team" name="team" required>
-            <option value="">Select team</option>
-            <option value="Red Bull Racing">Red Bull Racing</option>
-            <option value="Mercedes">Mercedes</option>
-            <option value="Ferrari">Ferrari</option>
-            <option value="McLaren">McLaren</option>
-            <option value="Alpine">Alpine</option>
-            <option value="Aston Martin">Aston Martin</option>
-            <option value="Williams">Williams</option>
-            <option value="Haas F1 Team">Haas F1 Team</option>
-            <option value="AlphaTauri">AlphaTauri</option>
-            <option value="Kick Sauber">Kick Sauber</option>
-            <option value="RB">RB</option>
-            <option value="Alfa Romeo Racing">Alfa Romeo Racing</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="field full">
-        <label for="driver">Driver</label>
-        <div class="select-wrap">
-          <select id="driver" name="driver" required>
-            <option value="">Select driver</option>
-            <option value="VER">VER — Max Verstappen</option>
-            <option value="HAM">HAM — Lewis Hamilton</option>
-            <option value="LEC">LEC — Charles Leclerc</option>
-            <option value="NOR">NOR — Lando Norris</option>
-            <option value="ALO">ALO — Fernando Alonso</option>
-            <option value="RUS">RUS — George Russell</option>
-            <option value="SAI">SAI — Carlos Sainz</option>
-            <option value="PER">PER — Sergio Pérez</option>
-            <option value="PIA">PIA — Oscar Piastri</option>
-            <option value="OCO">OCO — Esteban Ocon</option>
-            <option value="GAS">GAS — Pierre Gasly</option>
-            <option value="STR">STR — Lance Stroll</option>
-            <option value="TSU">TSU — Yuki Tsunoda</option>
-            <option value="ALB">ALB — Alexander Albon</option>
-            <option value="ZHO">ZHO — Guanyu Zhou</option>
-            <option value="BOT">BOT — Valtteri Bottas</option>
-            <option value="HUL">HUL — Nico Hülkenberg</option>
-            <option value="MAG">MAG — Kevin Magnussen</option>
-            <option value="RIC">RIC — Daniel Ricciardo</option>
-            <option value="VET">VET — Sebastian Vettel</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="btn-wrap">
-        <button type="submit">⚑ &nbsp; Predict Lap Time</button>
-      </div>
-
-      {% if prediction_text %}
-      <div class="result-panel">
-        <div class="result-label">Predicted Lap Time</div>
-        {% if "Error" in prediction_text %}
-          <div class="result-value error">{{ prediction_text }}</div>
-        {% else %}
-          <div class="result-value">{{ prediction_text }}</div>
-        {% endif %}
-      </div>
-      {% endif %}
-
+    <h1 class="hero-title">
+      <span class="line1">PREDICT EVERY</span>
+      <span class="line2">LAP TIME</span>
+    </h1>
+    <p class="hero-desc">AI-powered Formula 1 lap time prediction using race telemetry, tyre compounds, driver data, and constructor performance.</p>
+    <div class="hero-btns">
+      <a href="#predictor" class="btn-primary">🏁 Run Prediction</a>
+      <a href="#how-it-works" class="btn-outline">How It Works →</a>
     </div>
-  </form>
-</div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-num">20+</div>
+        <div class="stat-label">Drivers</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">10</div>
+        <div class="stat-label">Constructors</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">7+</div>
+        <div class="stat-label">Seasons</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">RF</div>
+        <div class="stat-label">ML Model</div>
+      </div>
+    </div>
+  </div>
+</section>
 
-<!-- Live ticker -->
+<!-- PREDICTOR -->
+<section id="predictor">
+  <div class="predictor-wrap">
+    <div class="section-header">
+      <div class="section-tag">🔮 AI Predictor</div>
+      <h2 class="section-title">Lap Time Predictor</h2>
+      <p class="section-sub">Enter race parameters to get an instant ML-powered lap time prediction.</p>
+    </div>
+
+    <div class="predictor-card">
+      <div class="predictor-header">
+        <div class="predictor-header-text">
+          <h3>Race Input Parameters</h3>
+          <p>All fields required for accurate prediction</p>
+        </div>
+        <div class="predictor-icon">🏎️</div>
+      </div>
+
+      <div class="form-body">
+        <form action="/predict" method="post">
+          <div class="form-grid">
+
+            <div class="section-divider"><div class="section-divider-label">Race Context</div></div>
+
+            <div class="field">
+              <label class="field-label">Season Year <span></span></label>
+              <input type="number" name="year" placeholder="2024" min="2018" max="2025" required>
+            </div>
+
+            <div class="field">
+              <label class="field-label">Track Position <span></span></label>
+              <input type="number" name="position" placeholder="1 – 20" min="1" max="20" required>
+            </div>
+
+            <div class="field">
+              <label class="field-label">Lap Number <span></span></label>
+              <input type="number" name="lap_number" placeholder="e.g. 28" min="1" required>
+            </div>
+
+            <div class="field">
+              <label class="field-label">Stint <span></span></label>
+              <input type="number" name="stint" placeholder="e.g. 2" min="1" required>
+            </div>
+
+            <div class="section-divider"><div class="section-divider-label">Tyre Data</div></div>
+
+            <div class="field">
+              <label class="field-label">Tyre Life (laps) <span></span></label>
+              <input type="number" name="tyre_life" placeholder="e.g. 12" min="0" required>
+            </div>
+
+            <div class="field">
+              <label class="field-label">Fresh Tyre <span></span></label>
+              <div class="select-wrap">
+                <select name="fresh_tyre" required>
+                  <option value="">Select</option>
+                  <option value="1">✅ Yes — Fresh</option>
+                  <option value="0">⚠️ No — Used</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field full">
+              <label class="field-label">Compound <span></span></label>
+              <div class="select-wrap">
+                <select name="compound" required>
+                  <option value="">Select compound</option>
+                  <option value="SOFT">🔴 SOFT — C4 / C5</option>
+                  <option value="MEDIUM">🟡 MEDIUM — C3</option>
+                  <option value="HARD">⚪ HARD — C1 / C2</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="section-divider"><div class="section-divider-label">Driver & Constructor</div></div>
+
+            <div class="field full">
+              <label class="field-label">Constructor <span></span></label>
+              <div class="select-wrap">
+                <select name="team" required>
+                  <option value="">Select team</option>
+                  <option value="Red Bull Racing">Red Bull Racing</option>
+                  <option value="Mercedes">Mercedes</option>
+                  <option value="Ferrari">Ferrari</option>
+                  <option value="McLaren">McLaren</option>
+                  <option value="Alpine">Alpine</option>
+                  <option value="Aston Martin">Aston Martin</option>
+                  <option value="Williams">Williams</option>
+                  <option value="Haas F1 Team">Haas F1 Team</option>
+                  <option value="AlphaTauri">AlphaTauri</option>
+                  <option value="Kick Sauber">Kick Sauber</option>
+                  <option value="RB">RB</option>
+                  <option value="Alfa Romeo Racing">Alfa Romeo Racing</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field full">
+              <label class="field-label">Driver <span></span></label>
+              <div class="select-wrap">
+                <select name="driver" required>
+                  <option value="">Select driver</option>
+                  <option value="VER">VER — Max Verstappen</option>
+                  <option value="HAM">HAM — Lewis Hamilton</option>
+                  <option value="LEC">LEC — Charles Leclerc</option>
+                  <option value="NOR">NOR — Lando Norris</option>
+                  <option value="ALO">ALO — Fernando Alonso</option>
+                  <option value="RUS">RUS — George Russell</option>
+                  <option value="SAI">SAI — Carlos Sainz</option>
+                  <option value="PER">PER — Sergio Pérez</option>
+                  <option value="PIA">PIA — Oscar Piastri</option>
+                  <option value="OCO">OCO — Esteban Ocon</option>
+                  <option value="GAS">GAS — Pierre Gasly</option>
+                  <option value="STR">STR — Lance Stroll</option>
+                  <option value="TSU">TSU — Yuki Tsunoda</option>
+                  <option value="ALB">ALB — Alexander Albon</option>
+                  <option value="ZHO">ZHO — Guanyu Zhou</option>
+                  <option value="BOT">BOT — Valtteri Bottas</option>
+                  <option value="HUL">HUL — Nico Hülkenberg</option>
+                  <option value="MAG">MAG — Kevin Magnussen</option>
+                  <option value="RIC">RIC — Daniel Ricciardo</option>
+                  <option value="VET">VET — Sebastian Vettel</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="submit-wrap">
+              <button type="submit" class="submit-btn">⚑ &nbsp; PREDICT LAP TIME</button>
+            </div>
+
+            {% if prediction_text %}
+            <div class="result-panel">
+              <div class="result-tag">📊 Predicted Lap Time</div>
+              {% if "Error" in prediction_text %}
+                <div class="result-time" style="font-size:20px;color:#ff6b6b;">{{ prediction_text }}</div>
+              {% else %}
+                <div class="result-time">{{ prediction_text }}</div>
+              {% endif %}
+            </div>
+            {% endif %}
+
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
+  <div style="max-width:960px;margin:0 auto;">
+    <div class="section-header">
+      <div class="section-tag">⚙️ Process</div>
+      <h2 class="section-title">How It Works</h2>
+      <p class="section-sub">Four steps from raw telemetry data to a predicted lap time.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <div class="step-icon">📡</div>
+        <div class="step-title">Data Collection</div>
+        <p class="step-desc">Historical F1 race telemetry from 2018–2024 seasons is collected including lap times, tyre data, car positions, and weather conditions.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-icon">🔧</div>
+        <div class="step-title">Feature Engineering</div>
+        <p class="step-desc">Raw data is processed into meaningful features: tyre degradation curves, driver consistency scores, constructor performance indices.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-icon">🌲</div>
+        <div class="step-title">Random Forest Model</div>
+        <p class="step-desc">A Random Forest Regressor is trained on thousands of race laps, learning complex non-linear relationships between inputs and lap times.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <div class="step-icon">⚡</div>
+        <div class="step-title">Real-Time Prediction</div>
+        <p class="step-desc">Enter your parameters and get an instant lap time prediction served via a FastAPI backend with sub-100ms response time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="about-inner">
+    <div class="about-visual">
+      <div class="about-chart">
+        <div class="chart-title">Driver Predicted Performance Score</div>
+        <div class="bar-row">
+          <div class="bar-label">VER</div>
+          <div class="bar-track"><div class="bar-fill bar-vlt">88%</div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">HAM</div>
+          <div class="bar-track"><div class="bar-fill bar-ham">81%</div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">LEC</div>
+          <div class="bar-track"><div class="bar-fill bar-lec">78%</div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">NOR</div>
+          <div class="bar-track"><div class="bar-fill bar-nor">76%</div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">ALO</div>
+          <div class="bar-track"><div class="bar-fill bar-alo">72%</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="about-text">
+      <div class="about-tag">🏁 About the Project</div>
+      <h3 class="about-title">ML Meets Formula 1</h3>
+      <p class="about-desc">This project combines a passion for Formula 1 racing with machine learning engineering. The model was trained on 7+ years of official F1 race data, capturing the nuances of each driver's style, team strategies, and tyre behavior.</p>
+      <p class="about-desc">Built as an end-to-end ML pipeline — from data scraping to model serving — it demonstrates real-world application of Random Forest models in a sports analytics context.</p>
+      <div class="tech-chips">
+        <span class="chip red">Python</span>
+        <span class="chip blue">Scikit-Learn</span>
+        <span class="chip green">FastAPI</span>
+        <span class="chip orange">FastF1 API</span>
+        <span class="chip purple">Pandas</span>
+        <span class="chip">NumPy</span>
+        <span class="chip">Jinja2</span>
+        <span class="chip red">Random Forest</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="contact-inner">
+    <h3>Get In Touch</h3>
+    <p>Interested in the project? Have feedback or want to collaborate? Reach out!</p>
+    <div class="contact-cards">
+      <a href="https://github.com/bsiddardha" class="contact-card" target="_blank">
+        <div class="contact-card-icon">🐙</div>
+        <div class="contact-card-label">GitHub</div>
+        <div class="contact-card-val">github.com/bsiddardha</div>
+      </a>
+      <a href="https://linkedin.com/in/siddardha-battala-a27a9b218" class="contact-card" target="_blank">
+        <div class="contact-card-icon">💼</div>
+        <div class="contact-card-label">LinkedIn</div>
+        <div class="contact-card-val">Siddardha Battala</div>
+      </a>
+    </div>
+    <a href="#predictor" class="btn-primary" style="display:inline-block;text-decoration:none;">Try the Predictor →</a>
+  </div>
+</section>
+
+<!-- TICKER -->
 <div class="ticker">
   <div class="ticker-inner">
-    <span>LAP TIME PREDICTOR</span>
-    <span>·</span>
-    <span>Random Forest Model</span>
-    <span>·</span>
-    <span>SOFT · MEDIUM · HARD</span>
-    <span>·</span>
-    <span>Race Telemetry Analytics</span>
-    <span>·</span>
-    <span>10 Constructors · 20 Drivers</span>
-    <span>·</span>
-    <span>LAP TIME PREDICTOR</span>
-    <span>·</span>
-    <span>Random Forest Model</span>
-    <span>·</span>
-    <span>SOFT · MEDIUM · HARD</span>
-    <span>·</span>
-    <span>Race Telemetry Analytics</span>
-    <span>·</span>
-    <span>10 Constructors · 20 Drivers</span>
-    <span>·</span>
+    <span>F1 LAP TIME PREDICTOR</span><span>·</span>
+    <span>RANDOM FOREST MODEL</span><span>·</span>
+    <span>SOFT · MEDIUM · HARD</span><span>·</span>
+    <span>20 DRIVERS · 10 TEAMS</span><span>·</span>
+    <span>7 SEASONS OF DATA</span><span>·</span>
+    <span>FASTAPI · SCIKIT-LEARN</span><span>·</span>
+    <span>F1 LAP TIME PREDICTOR</span><span>·</span>
+    <span>RANDOM FOREST MODEL</span><span>·</span>
+    <span>SOFT · MEDIUM · HARD</span><span>·</span>
+    <span>20 DRIVERS · 10 TEAMS</span><span>·</span>
+    <span>7 SEASONS OF DATA</span><span>·</span>
+    <span>FASTAPI · SCIKIT-LEARN</span><span>·</span>
   </div>
 </div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">F1 LapPredict</div>
+    <div class="footer-text">Built with ❤️ by Siddardha Battala · VIT-AP University</div>
+    <div class="footer-links">
+      <a href="#home">Home</a>
+      <a href="#predictor">Predictor</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+function toggleTheme(){
+  const html=document.documentElement;
+  const btn=document.getElementById('themeBtn');
+  if(html.getAttribute('data-theme')==='dark'){
+    html.removeAttribute('data-theme');
+    btn.textContent='🌙';
+    localStorage.setItem('theme','light');
+  } else {
+    html.setAttribute('data-theme','dark');
+    btn.textContent='☀️';
+    localStorage.setItem('theme','dark');
+  }
+}
+
+(function(){
+  const saved=localStorage.getItem('theme');
+  if(saved==='dark'){
+    document.documentElement.setAttribute('data-theme','dark');
+    document.getElementById('themeBtn').textContent='☀️';
+  }
+})();
+
+function setActive(el){
+  document.querySelectorAll('.nav-links a').forEach(a=>a.classList.remove('active'));
+  el.classList.add('active');
+}
+
+const observer=new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      const id=entry.target.id;
+      document.querySelectorAll('.nav-links a').forEach(a=>{
+        a.classList.toggle('active',a.getAttribute('href')==='#'+id);
+      });
+    }
+  });
+},{threshold:0.4});
+
+document.querySelectorAll('section[id]').forEach(s=>observer.observe(s));
+</script>
 
 </body>
 </html>
