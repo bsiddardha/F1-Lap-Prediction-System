@@ -1,57 +1,81 @@
-from sklearn.linear_model import LinearRegression
-
 import pandas as pd
-import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error 
+from sklearn.metrics import mean_absolute_error
 import joblib
 
 # Load dataset
+print("Loading dataset...")
 df = pd.read_csv("bahrain_2021_2024_combined.csv")
 
-# Features
+# Features and target
 features = [
-    "Year", "LapNumber", "Stint", "TyreLife",
-    "FreshTyre", "Position", "Compound", "Team", "Driver"
+    "Year",
+    "LapNumber",
+    "Stint",
+    "TyreLife",
+    "FreshTyre",
+    "Position",
+    "Compound",
+    "Team",
+    "Driver"
 ]
 
-# ✅ Correct target
 target = "LapTimeSeconds"
 
 # Clean data
+print("Cleaning data...")
 df = df[features + [target]].dropna()
 
-# Split
+# Split features and target
 X = df[features]
 y = df[target]
 
-# One-hot encoding
-X = pd.get_dummies(X, columns=["Compound", "Team", "Driver"])
+# One-hot encode categorical columns
+print("Encoding categorical features...")
+X = pd.get_dummies(
+    X,
+    columns=["Compound", "Team", "Driver"]
+)
 
-# Save columns
+# Convert all columns to numeric
+X = X.astype(float)
+
+# Save feature columns
 feature_columns = X.columns.tolist()
+
+print("Dataset shape:", X.shape)
 
 # Train-test split
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
 )
 
-# Model
-model = LinearRegression()
+# Simple Random Forest
+print("Training model...")
+model = RandomForestRegressor(
+    n_estimators=50,
+    random_state=42
+)
 
 model.fit(X_train, y_train)
 
-# Evaluate
+# Predictions
+print("Making predictions...")
 preds = model.predict(X_test)
+
+# Evaluation
 mae = mean_absolute_error(y_test, preds)
 
-print("✅ Model trained successfully!")
+print("\n✅ Model trained successfully!")
 print(f"📊 MAE: {mae:.3f} seconds")
 
+# Save model and columns
+joblib.dump(model, "f1_random_forest.pkl")
+joblib.dump(feature_columns, "f1_random_forest_columns.pkl")
 
-# Save
-joblib.dump(model, "f1_Linear_regression.pkl")
-joblib.dump(feature_columns, "f1_Linear_regression.pkl")
-
-print("💾 Model and columns saved!")
+print("💾 Model saved as: f1_random_forest.pkl")
+print("💾 Columns saved as: f1_random_forest_columns.pkl")
